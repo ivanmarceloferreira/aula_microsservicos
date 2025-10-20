@@ -1,0 +1,8 @@
+users/node_modules
+users/dist
+users/build
+
+orders/node_modules
+orders/dist
+orders/build
+orders/.env
