@@ -3,7 +3,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { OrdersService } from './orders.service';
 
 @Injectable()
-export class OrderProcessorService implements OnModuleInit {
+export class OrderApproverService implements OnModuleInit {
 
     constructor(private redisService: RedisService,
                 private ordersService: OrdersService
@@ -11,8 +11,8 @@ export class OrderProcessorService implements OnModuleInit {
     }
 
     async onModuleInit() {
-        const sub = this.redisService.getSubscriber();
-        await sub.subscribe('order_created', (err, count) => {
+        const sub = this.redisService.getSubscriber2();
+        await sub.subscribe('order_processed', (err, count) => {
             if (err) {
                 console.error('Failed to subscribe: ', err);
             } else {
@@ -23,19 +23,13 @@ export class OrderProcessorService implements OnModuleInit {
         sub.on('message', async (channel, message) => {
             console.log(`Received message from channel ${channel}: ${message}`);
             let order: any = JSON.parse(message);
-            console.log('Processing order:', order);
+            console.log('Approving order:', order);
             let existing = await this.ordersService.get(order.orderId);
-            
+            // AQUI VAI A REGRA DE NEGÓCIO DE VOCES
             if (existing) {
-                existing.status = 'processing';
+                existing.status = 'approved';
                 await this.ordersService.update(existing);
-                console.log(`Order ${order.orderId} status updated to processing`);
-                
-                await this.redisService.getPublisher().publish('order_processed', JSON.stringify({
-                    orderId: existing.id,
-                    userId: existing.userId
-                }));
-                console.log(`Published order_processed event to Redis for order ${existing.id}`);
+                console.log(`Order ${order.orderId} status updated to approved`);
             }
             
         });
